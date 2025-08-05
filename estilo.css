@@ -43,6 +43,7 @@ body{
     width: 100%;
     height: 100%;
     top: 0;
+    z-index: 1000;
 }
 
 .flipbook .hoja .pagina.frontal{
@@ -92,6 +93,11 @@ color: #fff;
 
 .espejo {
     transform: scaleX(-1);
+    display: inline-block;
+}
+
+.sin-espejo {
+    transform: scaleX(1);
     display: inline-block;
 }
 
@@ -163,4 +169,52 @@ body[onload] div.hoja:nth-child(4)> div:nth-child(1){
 
 .cd__intro{
     background: #c0e;
+}
+
+.dark-romance-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4e0f11, #000000);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    color: #fff;
+    text-decoration: none;
+    font-size: 24px;
+    transition: all 0.3s ease;
+    border: 2px solid #2d2d2d;
+    position: absolute;
+    pointer-events: auto;
+    z-index: 10;
+}
+
+.dark-romance-btn:hover {
+    background: linear-gradient(135deg, #6b1c1e, #111);
+    transform: scale(1.1);
+}
+
+.dark-romance-btn::after {
+    content: "Galería";
+    position: absolute;
+    bottom: -20px;
+    font-size: 12px;
+    color: #ccc;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.dark-romance-btn:hover::after {
+    bottom: -24px;
+    opacity: 1;
+}
+
+#boton-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    pointer-events: auto;
 }
