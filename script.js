@@ -2,7 +2,8 @@ class FlipBook {
     constructor(bookElem) {
         this.book = bookElem;
         this.leaves = [...bookElem.querySelectorAll('.hoja')];
-        this.current = 0;
+        // Recupera la hoja guardada o inicia en 0
+        this.current = parseInt(localStorage.getItem('flipbook-hoja')) || 0;
         this.max = this.leaves.length;
         this.init();
     }
@@ -10,9 +11,7 @@ class FlipBook {
     init() {
         this.update();
 
-        // Evento para cambiar de hoja
         this.book.addEventListener('click', e => {
-            // Si haces clic en un enlace, deja que navegue normalmente
             if (e.target.closest('a')) return;
 
             const { left, width } = this.book.getBoundingClientRect();
@@ -20,6 +19,9 @@ class FlipBook {
 
             if (x > width / 2 && this.current < this.max) this.current++;
             if (x <= width / 2 && this.current > 0) this.current--;
+
+            // Guarda la hoja actual en localStorage
+            localStorage.setItem('flipbook-hoja', this.current);
 
             this.update();
         });

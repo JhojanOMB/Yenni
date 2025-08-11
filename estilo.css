@@ -12,17 +12,23 @@ body{
 }
 
 .centrado{
-    margin: auto;
-    width: max-content;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
 }
 
 .flipbook{
-    margin: 3em auto;
+    margin: 3rem auto;
     width: 500px;
     height: 400px;
     position: relative;
     transform-style: preserve-3d;
     perspective: 1000px;
+}
+
+.flipbook {
+    cursor: pointer;
 }
 
 .flipbook .hoja{
