@@ -39,3 +39,33 @@ class FlipBook {
 document.addEventListener('DOMContentLoaded', () => {
     new FlipBook(document.getElementById('flipbook'));
 });
+
+  const mensajeReal = "TE QUIERO MUCHO";
+  const elemento = document.getElementById("mensaje");
+  const corazon = document.querySelector(".corazon-img");
+
+  // Mostrar primero guiones bajos
+  let mostrado = mensajeReal.split("").map(char => {
+    return char === " " ? " " : "_";
+  });
+
+  elemento.textContent = mostrado.join(" ");
+
+  let i = 0;
+  function revelarLetras() {
+    if (i < mensajeReal.length) {
+      if (mensajeReal[i] !== " ") {
+        mostrado[i] = mensajeReal[i];
+      }
+      elemento.textContent = mostrado.join(" ");
+      i++;
+      setTimeout(revelarLetras, 400); // velocidad
+    }
+  }
+
+  // 👉 Ahora el trigger es el click en el corazón
+  corazon.addEventListener("click", () => {
+    if (i === 0) { // Solo la primera vez
+      revelarLetras();
+    }
+  });

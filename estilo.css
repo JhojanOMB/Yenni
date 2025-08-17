@@ -192,3 +192,26 @@ body[onload] div.hoja:nth-child(4)> div:nth-child(1){
     background: linear-gradient(135deg, #6b1c1e, #111);
     transform: scale(1.1);
 }
+.corazon-img {
+  display: block;
+  width: 120px;       /* tamaño ajustable */
+  margin: 60px auto 30px auto; /* centrado y bajado */
+  animation: latido 2.5s infinite;
+}
+
+@keyframes latido {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.15); }
+  50%  { transform: scale(1); }
+  75%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+/* Texto estilo ahorcado */
+#mensaje {
+  text-align: center;
+  font-size: 1rem;
+  letter-spacing: 6px;
+  font-family: monospace;
+  color: #222;
+}
