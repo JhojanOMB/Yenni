@@ -215,3 +215,15 @@ body[onload] div.hoja:nth-child(4)> div:nth-child(1){
   font-family: monospace;
   color: #222;
 }
+
+.higanbana {
+  width: 150px;
+  margin-top: 10px;
+  border-radius: 8px;
+  opacity: 0;
+  animation: aparecer 3s forwards;
+}
+
+@keyframes aparecer {
+  to { opacity: 1; }
+}
