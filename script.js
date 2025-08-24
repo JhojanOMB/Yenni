@@ -73,11 +73,10 @@ document.addEventListener('DOMContentLoaded', () => {
 const frases = [
   "«Seré tu memoria cuando las hojas se pierdan.»",
   "«Seré el complice de tus locuras.»",
-  "«Ya sé que te encanta bailar, pero voy a ser el que te mire como si fueras música.»",
+  "«Ya sé que te encanta bailar, por eso te miro como si fueras mi canción favorita.»",
   "«Seré el Badtz-Maru que nunca se rinde si es por ti.»",
   "«Seré quien te diga que no estás sola, ni en tu lado más oscuro.»",
   "«Seré tu escritor fantasma en las páginas de nuestra historia.»",
-  "«Voy a ser el eco de tus pasos para que nunca camines sola.»",
   "«Sé que dices que no necesitas a nadie, pero igual voy a ser el necio que quiere estar contigo.»",
   "«Sé que puedes con todo sola, pero yo voy a ser el que te recuerde que también puedes descansar en mí.»",
   "«Tú eres mi libro más oscuro y mi poema más tierno.»",
