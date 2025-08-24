@@ -63,7 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 👉 Ahora el trigger es el click en el corazón
   corazon.addEventListener("click", () => {
     if (i === 0) { // Solo la primera vez
       revelarLetras();
@@ -97,7 +96,7 @@ const DELETE_SPEED = 18;
 // Retardo inicial antes de arrancar (ms)
 const START_DELAY = 300;
 
-/* ---------- LÓGICA (no necesitas tocar más) ---------- */
+/* ---------- LÓGICA ---------- */
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
 const el = document.querySelector('.type-text');
