@@ -69,3 +69,98 @@ document.addEventListener('DOMContentLoaded', () => {
       revelarLetras();
     }
   });
+
+/* ---------- CONFIG FRASES ---------- */
+const frases = [
+  "«Seré tu memoria cuando las hojas se pierdan.»",
+  "«Seré el complice de tus locuras.»",
+];
+
+// Modo: 'random' | 'sequential' | 'shuffle'
+const MODE = 'random';
+
+// Tiempo total que la frase debe estar visible (ms) PERMANECIENDO tras escribirse
+const VISIBLE_TIME = 2000;
+
+// Velocidad de tipeo y borrado (ms por carácter)
+const TYPE_SPEED = 28;
+const DELETE_SPEED = 18;
+
+// Retardo inicial antes de arrancar (ms)
+const START_DELAY = 300;
+
+/* ---------- LÓGICA (no necesitas tocar más) ---------- */
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+const el = document.querySelector('.type-text');
+const cursor = document.querySelector('.type-cursor');
+if(!el) {
+  console.warn('No se encontró .type-text. Inserta el HTML antes de este script.');
+} else {
+  // Preparar estado para shuffle
+  let seqIndex = 0;
+  let shuffleArr = [];
+  let lastIndex = -1;
+
+  function pickIndex() {
+    if(MODE === 'sequential'){
+      const idx = seqIndex % frases.length;
+      seqIndex++;
+      return idx;
+    }
+    if(MODE === 'shuffle'){
+      if(shuffleArr.length === 0){
+        shuffleArr = frases.map((f,i)=>i);
+        // Fisher-Yates shuffle
+        for(let i=shuffleArr.length-1;i>0;i--){
+          const j = Math.floor(Math.random()*(i+1));
+          [shuffleArr[i], shuffleArr[j]] = [shuffleArr[j], shuffleArr[i]];
+        }
+      }
+      return shuffleArr.shift();
+    }
+    // mode random (por defecto)
+    if(frases.length === 1) return 0;
+    let idx;
+    do {
+      idx = Math.floor(Math.random()*frases.length);
+    } while(idx === lastIndex);
+    return idx;
+  }
+
+  async function typeText(text) {
+    el.style.visibility = 'visible';
+    el.textContent = '';
+    for(let i=1;i<=text.length;i++){
+      el.textContent = text.slice(0,i);
+      await sleep(TYPE_SPEED);
+    }
+  }
+
+  async function deleteText() {
+    let txt = el.textContent;
+    while(txt.length > 0){
+      txt = txt.slice(0, -1);
+      el.textContent = txt;
+      await sleep(DELETE_SPEED);
+    }
+  }
+
+  async function runLoop(){
+    await sleep(START_DELAY);
+    while(true){
+      const idx = pickIndex();
+      lastIndex = idx;
+      const phrase = frases[idx];
+      await typeText(phrase);
+      // espera visible
+      await sleep(VISIBLE_TIME);
+      // borrar antes de siguiente
+      await deleteText();
+      // pequeño descanso antes de continuar
+      await sleep(300);
+    }
+  }
+  
+  runLoop().catch(err => console.error(err));
+}

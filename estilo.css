@@ -227,3 +227,82 @@ body[onload] div.hoja:nth-child(4)> div:nth-child(1){
 @keyframes aparecer {
   to { opacity: 1; }
 }
+
+  .badtz-card{
+    width: 320px;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    pointer-events: auto;
+    font-family: Inter, system-ui, Arial, sans-serif;
+  }
+
+  /* Texto arriba estilo "libro" */
+  .badtz-caption{
+    display: inline-block;
+    margin-bottom: 10px;
+    background: #fff;
+    border: 2px solid #222;
+    padding: 7px 10px;
+    border-radius: 012px;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+    max-width: 60%;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1.1;
+  }
+
+  /* Triángulo del globo */
+  .badtz-caption::after{
+    content: "";
+    display: block;
+    width: 0; height: 0;
+    margin: 0 auto;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 10px solid #fff;
+    transform: translateY(6px);
+    position: relative;
+    z-index: 1;
+  }
+  .badtz-caption::before{
+    /* borde oscuro del triángulo */
+    content: "";
+    display: block;
+    width: 0; height: 0;
+    margin: 0 auto;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 12px solid rgba(0,0,0,0.9);
+    margin-bottom: 12px;
+    transform: translateY(4px);
+    position: relative;
+    z-index: 0;
+  }
+
+  .badtz-img{
+    width: 180px;
+    height: auto;
+    display:block;
+    margin: 0 auto;
+    border-radius: 14px;
+    cursor: pointer; /* si quieres que sea clicable */
+  }
+
+  /* Pequeña animación al pasar el cursor */
+  .badtz-card .badtz-img:hover{
+    transform: translateY(-6px);
+    transition: transform .22s ease;
+  }
+
+  /* Máquina de escribir (oculta inicialmente) */
+  .type-text{ display:inline-block; white-space:pre-wrap; visibility: hidden; }
+  .type-cursor{ display:inline-block; margin-left:6px; animation: blink .9s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  @media (max-width:420px){
+    .badtz-card{ width: 84%; bottom: 18px; }
+    .badtz-img{ width: 160px; }
+    .badtz-caption{ font-size:13px; }
+  }
