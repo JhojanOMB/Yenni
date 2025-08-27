@@ -306,3 +306,71 @@ body[onload] div.hoja:nth-child(4)> div:nth-child(1){
     .badtz-img{ width: 160px; }
     .badtz-caption{ font-size:13px; }
   }
+
+.carta-contenido {
+  background: #fff;
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  overflow: hidden; /* para que el header redondee arriba */
+  font-family: 'Playfair Display', serif;
+  text-align: center;
+}
+
+.carta-header {
+  background-color: #800020; /* vinotinto */
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  font-size: 18px;
+  font-weight: bold;
+  font-family: monospace;
+}
+
+.carta-header .cerrar {
+  cursor: pointer;
+  font-size: 20px;
+  font-weight: normal;
+}
+
+.texto {
+  display: flex;
+  align-items: center;   /* centra corazón y texto en vertical */
+  justify-content: center; /* centra todo en el contenedor */
+  gap: 10px; /* espacio entre corazón y texto */
+  font-size: 12px;
+  margin: 25px 15px;
+  color: #333;
+  text-align: left;
+}
+
+.corazon {
+  font-size: 20px; /* corazón más pequeño que el texto */
+  color: red;
+  text-shadow: 0 2px 4px rgba(255,0,0,0.4);
+}
+
+.frase {
+  font-size: 15px; /* frase un poco más grande */
+  font-weight: 500;
+}
+
+
+.btn-extrano {
+  background: #7a1225;
+  color: #fff;
+  border: none;
+  padding: 10px 25px;
+  border-radius: 25px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: 0.3s;
+  margin-bottom: 15px;
+  box-shadow: 0 5px 12px rgba(255,77,109,0.4);
+}
+
+.btn-extrano:hover {
+  background: #e03c5d;
+  transform: scale(1.05);
+}
