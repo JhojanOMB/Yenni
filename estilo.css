@@ -364,10 +364,10 @@ body[onload] div.hoja:nth-child(4)> div:nth-child(1){
   padding: 10px 25px;
   border-radius: 25px;
   font-size: 12px;
+  font-family: monospace;
   cursor: pointer;
   transition: 0.3s;
   margin-bottom: 15px;
-  box-shadow: 0 5px 12px rgba(255,77,109,0.4);
 }
 
 .btn-extrano:hover {
