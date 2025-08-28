@@ -1,8 +1,9 @@
+let preventFlip = false;
+
 class FlipBook {
     constructor(bookElem) {
         this.book = bookElem;
         this.leaves = [...bookElem.querySelectorAll('.hoja')];
-        // Recupera la hoja guardada o inicia en 0
         this.current = parseInt(localStorage.getItem('flipbook-hoja')) || 0;
         this.max = this.leaves.length;
         this.init();
@@ -12,6 +13,7 @@ class FlipBook {
         this.update();
 
         this.book.addEventListener('click', e => {
+            if (e.target.closest('.reproductor')) return; // evita clicks en cualquier hijo del reproductor
             if (e.target.closest('a')) return;
 
             const { left, width } = this.book.getBoundingClientRect();
@@ -20,12 +22,9 @@ class FlipBook {
             if (x > width / 2 && this.current < this.max) this.current++;
             if (x <= width / 2 && this.current > 0) this.current--;
 
-            // Guarda la hoja actual en localStorage
             localStorage.setItem('flipbook-hoja', this.current);
-
             this.update();
 
-            // Emitimos evento para que otros scripts (reproductor) sepan que cambió la página
             const visibleIndex = Math.min(this.current, this.max - 1);
             this.book.dispatchEvent(new CustomEvent('pageChanged', {
                 detail: { current: this.current, visibleIndex }
@@ -40,7 +39,6 @@ class FlipBook {
             leaf.style.zIndex = pos ? idx : this.max - idx;
         });
 
-        // También emitimos evento cuando update() se ejecuta
         const visibleIndex = Math.min(this.current, this.max - 1);
         this.book.dispatchEvent(new CustomEvent('pageChanged', {
             detail: { current: this.current, visibleIndex }
@@ -212,17 +210,13 @@ if(el) {
   runLoop().catch(err => console.error(err));
 }
 
-/* ---------- REPRODUCTOR + BRIDGE con FlipBook + Guardar progreso (CORREGIDO) ---------- */
-(function(){
-  if (document.readyState === 'loading') {
-    return document.addEventListener('DOMContentLoaded', init);
-  } else init();
+document.addEventListener('DOMContentLoaded', () => {
+    const flipbook = document.getElementById('flipbook');
+    if (!flipbook) return;
+    new FlipBook(flipbook);
 
-  function init(){
+    // ---------- REPRODUCTOR INTEGRADO ----------
     const page = document.getElementById('page-28');
-    const flipbook = document.getElementById('flipbook') || document.documentElement;
-    if (!page || !flipbook) return;
-
     const audio = document.getElementById('audio-28');
     const playBtn = document.getElementById('dr-play-28');
     const fallbackBtn = document.getElementById('dr-fallback-28');
@@ -230,187 +224,122 @@ if(el) {
     const progressFill = document.getElementById('dr-progress-filled-28');
     const timeEl = document.getElementById('dr-time-28');
     const playerEl = document.getElementById('dr-player-28');
-    if (!audio || !playerEl) {
-      console.warn('Reproductor: falta audio o playerEl');
-      return;
-    }
 
-    // debug rápido si algo no existe
-    console.assert(playBtn, 'No se encontró #dr-play-28');
-    console.assert(progress, 'No se encontró #dr-progress-28');
+    if (!audio || !playerEl || !page) return;
 
     let isPlaying = false;
-    const STORAGE_KEY = "audio-pos-28"; // clave única para esta página
+    const STORAGE_KEY = "audio-pos-28";
 
-    // ---------- Evitar que el flipbook interprete los toques dentro del reproductor ----------
-    const stopAll = ev => { try { ev.stopPropagation(); } catch (e) {} };
-    // Bloqueamos en el contenedor del reproductor y en el progress; NO en el playBtn (para evitar interferir)
-    ['pointerdown','pointerup','pointermove','pointercancel','touchstart','touchend'].forEach(evName => {
-      playerEl.addEventListener(evName, stopAll, { passive: false });
-      if (progress) progress.addEventListener(evName, stopAll, { passive: false });
-      if (fallbackBtn) fallbackBtn.addEventListener(evName, stopAll, { passive: false });
-    });
-
-    // ---------- Helpers ----------
-    const fmt = s => { s = Math.max(0, Math.floor(s || 0)); const m = Math.floor(s/60), sec = s % 60; return `${m}:${sec.toString().padStart(2,'0')}`; };
-    const setPlayingUI = () => {
-      if (!playBtn) return;
-      playBtn.textContent = isPlaying ? '⏸' : '▶';
-      playBtn.setAttribute('aria-pressed', String(isPlaying));
+    const fmt = s => {
+        s = Math.max(0, Math.floor(s || 0));
+        const m = Math.floor(s / 60),
+              sec = s % 60;
+        return `${m}:${sec.toString().padStart(2, '0')}`;
     };
 
-    async function tryPlay(){
-      try {
-        await audio.play();
-        isPlaying = true;
-        setPlayingUI();
-        if (fallbackBtn) fallbackBtn.style.display = 'none';
-        console.debug('audio: play OK');
-      } catch (err) {
-        // fallo (autoplay u otro). mostramos fallback si lo tienes
-        console.warn('audio: play rejected', err);
-        if (fallbackBtn) fallbackBtn.style.display = 'inline-block';
-        isPlaying = false;
-        setPlayingUI();
-      }
-    }
+    const setPlayingUI = () => {
+        if (!playBtn) return;
+        playBtn.textContent = isPlaying ? '⏸' : '▶';
+        playBtn.setAttribute('aria-pressed', String(isPlaying));
+    };
 
-    function doPause(){
-      try {
+    const tryPlay = async () => {
+        try {
+            await audio.play();
+            isPlaying = true;
+            setPlayingUI();
+            if (fallbackBtn) fallbackBtn.style.display = 'none';
+        } catch (err) {
+            console.warn('audio: play rejected', err);
+            isPlaying = false;
+            setPlayingUI();
+            if (fallbackBtn) fallbackBtn.style.display = 'inline-block';
+        }
+    };
+
+    const doPause = () => {
         audio.pause();
         isPlaying = false;
         setPlayingUI();
-        console.debug('audio: paused');
-      } catch (err) {
-        console.warn('audio: pause error', err);
-      }
-    }
+    };
 
-    // Toggle robusto: usa estado real de <audio> y promise de play()
-    function togglePlay(){
-      // prevenir doble-click rápido que pueda crear race
-      if (audio.paused || audio.ended) {
-        // reproducir
-        tryPlay();
-      } else {
-        // pausar
-        doPause();
-      }
-    }
+    const togglePlay = () => {
+        if (audio.paused || audio.ended) tryPlay();
+        else doPause();
+    };
 
-    // ---------- Progreso ----------
-    function updateProgress(){
-      if (!audio.duration || !isFinite(audio.duration)) {
-        if (progressFill) progressFill.style.width = '0%';
-        if (timeEl) timeEl.textContent = '0:00 / 0:00';
-        return;
-      }
-      const pct = (audio.currentTime / audio.duration) * 100;
-      if (progressFill) progressFill.style.width = `${pct}%`;
-      if (timeEl) timeEl.textContent = `${fmt(audio.currentTime)} / ${fmt(audio.duration)}`;
+    const updateProgress = () => {
+        if (!audio.duration || !isFinite(audio.duration)) {
+            if (progressFill) progressFill.style.width = '0%';
+            if (timeEl) timeEl.textContent = '0:00 / 0:00';
+            return;
+        }
+        const pct = (audio.currentTime / audio.duration) * 100;
+        if (progressFill) progressFill.style.width = `${pct}%`;
+        if (timeEl) timeEl.textContent = `${fmt(audio.currentTime)} / ${fmt(audio.duration)}`;
+        try { localStorage.setItem(STORAGE_KEY, String(audio.currentTime)); } catch(e) {}
+    };
 
-      // Guardar progreso cada vez que actualiza (timeupdate)
-      try { localStorage.setItem(STORAGE_KEY, String(audio.currentTime)); } catch(e) {}
-    }
-
-    // Restaurar posición cuando carga metadata
     audio.addEventListener('loadedmetadata', () => {
-      try {
         const saved = parseFloat(localStorage.getItem(STORAGE_KEY));
         if (!isNaN(saved) && saved > 0 && saved < audio.duration) {
-          audio.currentTime = saved;
+            audio.currentTime = saved;
         }
-      } catch(e){}
-      updateProgress();
+        updateProgress();
     });
 
     audio.addEventListener('timeupdate', updateProgress);
     audio.addEventListener('ended', () => { isPlaying = false; setPlayingUI(); });
-
-    // Sincronizar UI con eventos reales del audio (por si se cambia desde otro lado)
     audio.addEventListener('play', () => { isPlaying = true; setPlayingUI(); });
     audio.addEventListener('pause', () => { isPlaying = false; setPlayingUI(); });
 
-    // ---------- Botones ----------
-    if (playBtn) {
-      // listener limpio: stopPropagation para que no llegue al flipbook y togglePlay()
-      playBtn.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        ev.preventDefault();
-        togglePlay();
-      });
+    // Evitar que clicks dentro del reproductor lleguen al flipbook
+    ['click', 'pointerdown', 'pointerup', 'pointermove', 'pointercancel', 'touchstart', 'touchend'].forEach(ev => {
+        playerEl.addEventListener(ev, e => e.stopPropagation());
+    });
 
-      // soporte teclado (space/enter)
-      playBtn.addEventListener('keydown', (ev) => {
-        if (ev.key === ' ' || ev.key === 'Spacebar' || ev.key === 'Enter') {
-          ev.preventDefault();
-          togglePlay();
-        }
-      });
-    }
+    playBtn.addEventListener('click', ev => {
+        ev.stopPropagation(); // evita que FlipBook reciba este click
+        togglePlay();         // reproduce o pausa normalmente
+    });
 
     if (fallbackBtn) {
-      fallbackBtn.addEventListener('click', async (ev) => {
-        ev.stopPropagation();
-        try {
-          await audio.play();
-          isPlaying = true;
-          fallbackBtn.style.display = 'none';
-          setPlayingUI();
-        } catch (err) {
-          console.warn('fallback play failed', err);
-        }
-      });
+        fallbackBtn.addEventListener('click', async ev => {
+            ev.stopPropagation();
+            try { 
+                await audio.play(); 
+                isPlaying = true; 
+                fallbackBtn.style.display = 'none'; 
+                setPlayingUI(); 
+            } catch(err) { console.warn('fallback play failed', err); }
+        });
     }
 
-    // ---------- Seeking (click + pointer) ----------
     if (progress) {
-      progress.addEventListener('click', ev => {
-        ev.stopPropagation();
-        const rect = progress.getBoundingClientRect();
-        const pct = Math.min(1, Math.max(0, (ev.clientX - rect.left) / rect.width));
-        if (audio.duration) audio.currentTime = pct * audio.duration;
-        updateProgress();
-      });
-
-      let isSeeking = false;
-      function seekFromPointer(x) {
-        const rect = progress.getBoundingClientRect();
-        const pct = Math.min(1, Math.max(0, (x - rect.left) / rect.width));
-        if (audio.duration) audio.currentTime = pct * audio.duration;
-        updateProgress();
-      }
-
-      progress.addEventListener('pointerdown', ev => { ev.stopPropagation(); isSeeking = true; try { progress.setPointerCapture(ev.pointerId); } catch {} seekFromPointer(ev.clientX); });
-      progress.addEventListener('pointermove', ev => { if (isSeeking) { ev.stopPropagation(); seekFromPointer(ev.clientX); } });
-      progress.addEventListener('pointerup', ev => { if (isSeeking) { ev.stopPropagation(); isSeeking = false; try { progress.releasePointerCapture(ev.pointerId);} catch {} seekFromPointer(ev.clientX); } });
-      progress.addEventListener('pointercancel', () => { isSeeking = false; });
+        progress.addEventListener('click', ev => {
+            ev.stopPropagation();
+            const rect = progress.getBoundingClientRect();
+            const pct = Math.min(1, Math.max(0, (ev.clientX - rect.left)/rect.width));
+            if (audio.duration) audio.currentTime = pct * audio.duration;
+            updateProgress();
+        });
     }
 
     // ---------- Integración con FlipBook ----------
     const leaves = flipbook.querySelectorAll('.hoja');
     const pageLeaf = page.closest('.hoja');
     const pageIndex = pageLeaf ? Array.prototype.indexOf.call(leaves, pageLeaf) : -1;
-    function handlePageChanged(detail){
-      if (!detail || pageIndex < 0) return;
-      if (detail.visibleIndex === pageIndex) tryPlay(); else doPause();
-    }
+
+    const handlePageChanged = detail => {
+        if (!detail || pageIndex < 0) return;
+        if (detail.visibleIndex === pageIndex) tryPlay();
+        else doPause();
+    };
+
     flipbook.addEventListener('pageChanged', e => handlePageChanged(e.detail));
 
-    // ---------- Estado inicial: si la página está visible, intentar reproducir ----------
-    const stored = parseInt(localStorage.getItem('flipbook-hoja'));
-    const current = Number.isNaN(stored) ? 0 : stored;
-    const initialVisible = Math.min(current, leaves.length - 1);
-    if (initialVisible === pageIndex) tryPlay(); else doPause();
-
-    // Extra: guarda posición también al salir de la pestaña
-    window.addEventListener('beforeunload', () => {
-      try { localStorage.setItem(STORAGE_KEY, String(audio.currentTime)); } catch(e) {}
-    });
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        try { localStorage.setItem(STORAGE_KEY, String(audio.currentTime)); } catch(e) {}
-      }
-    });
-  } // init
-})();
+    // Estado inicial
+    const storedPage = parseInt(localStorage.getItem('flipbook-hoja'));
+    const currentPage = Number.isNaN(storedPage) ? 0 : storedPage;
+    if (currentPage === pageIndex) tryPlay();
+});
