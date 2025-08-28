@@ -354,13 +354,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if(!flipbook || !page || !audio || !fraseEl || !playBtn) return;
 
+  let typingTimeouts = [];
+
   // Efecto tipeo
   async function typeFrase(text, el, speed = 150){
+      clearFrase(); // Limpiamos antes de escribir
       el.textContent = '';
       for(let i = 0; i < text.length; i++){
-          el.textContent = text.slice(0, i+1);
-          await new Promise(r => setTimeout(r, speed));
+          const timeout = setTimeout(() => {
+              el.textContent = text.slice(0, i+1);
+          }, i * speed);
+          typingTimeouts.push(timeout);
       }
+  }
+
+  // Limpiar frase y timeouts
+  function clearFrase(){
+      typingTimeouts.forEach(t => clearTimeout(t));
+      typingTimeouts = [];
+      if(fraseEl) fraseEl.textContent = '';
   }
 
   // Detectar cambio de página
@@ -377,7 +389,10 @@ document.addEventListener('DOMContentLoaded', () => {
           // Mostrar frase lentamente
           typeFrase(fraseTexto, fraseEl, 150);
       } else {
+          // Pausar y limpiar al salir
           audio.pause();
+          audio.currentTime = 0;
+          clearFrase();
       }
   });
 
