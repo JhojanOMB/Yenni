@@ -345,63 +345,63 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 (function(){
-  const flipbook = document.getElementById('flipbook');
-  const page = document.getElementById('page-28');
-  const audio = document.getElementById('audio-28');
-  const playBtn = document.getElementById('dr-play-28');
-  const fraseEl = document.getElementById('cancion-frase-28');
-  const fraseTexto = "«Que cada nota me recuerde a ti, y cada suspiro sea tuyo.»";
+    const flipbook = document.getElementById('flipbook');
+    const page = document.getElementById('page-28');
+    const audio = document.getElementById('audio-28');
+    const playBtn = document.getElementById('dr-play-28');
+    const fraseEl = document.getElementById('cancion-frase-28');
+    const fraseTexto = "«Que cada nota me recuerde a ti, y cada suspiro sea tuyo.»";
 
-  if(!flipbook || !page || !audio || !fraseEl || !playBtn) return;
+    if(!flipbook || !page || !audio || !fraseEl || !playBtn) return;
 
-  let typingTimeouts = [];
+    let typingTimeouts = [];
 
-  // Efecto tipeo
-  async function typeFrase(text, el, speed = 150){
-      clearFrase(); // Limpiamos antes de escribir
-      el.textContent = '';
-      for(let i = 0; i < text.length; i++){
-          const timeout = setTimeout(() => {
-              el.textContent = text.slice(0, i+1);
-          }, i * speed);
-          typingTimeouts.push(timeout);
-      }
-  }
+    // Efecto tipeo
+    async function typeFrase(text, el, speed = 150){
+        clearFrase(); // Limpiamos antes de escribir
+        el.textContent = '';
+        for(let i = 0; i < text.length; i++){
+            const timeout = setTimeout(() => {
+                el.textContent = text.slice(0, i+1);
+            }, i * speed);
+            typingTimeouts.push(timeout);
+        }
+    }
 
-  // Limpiar frase y timeouts
-  function clearFrase(){
-      typingTimeouts.forEach(t => clearTimeout(t));
-      typingTimeouts = [];
-      if(fraseEl) fraseEl.textContent = '';
-  }
+    // Limpiar frase y timeouts
+    function clearFrase(){
+        typingTimeouts.forEach(t => clearTimeout(t));
+        typingTimeouts = [];
+        if(fraseEl) fraseEl.textContent = '';
+    }
 
-  // Detectar cambio de página
-  const leaves = flipbook.querySelectorAll('.hoja');
-  const pageLeaf = page.closest('.hoja');
-  const pageIndex = pageLeaf ? Array.prototype.indexOf.call(leaves, pageLeaf) : -1;
-  if(pageIndex < 0) return;
+    // Detectar cambio de página
+    const leaves = flipbook.querySelectorAll('.hoja');
+    const pageLeaf = page.closest('.hoja');
+    const pageIndex = pageLeaf ? Array.prototype.indexOf.call(leaves, pageLeaf) : -1;
+    if(pageIndex < 0) return;
 
-  flipbook.addEventListener('pageChanged', async (e) => {
-      if(!e.detail) return;
-      if(e.detail.visibleIndex === pageIndex){
-          // Reproducir audio
-          try { await audio.play(); } catch(err){ console.warn(err); }
-          // Mostrar frase lentamente
-          typeFrase(fraseTexto, fraseEl, 150);
-      } else {
-          // Pausar y limpiar al salir
-          audio.pause();
-          audio.currentTime = 0;
-          clearFrase();
-      }
-  });
+    flipbook.addEventListener('pageChanged', async (e) => {
+        if(!e.detail) return;
+        if(e.detail.visibleIndex === pageIndex){
+            // Reproducir audio
+            try { await audio.play(); } catch(err){ console.warn(err); }
+            // Mostrar frase lentamente
+            typeFrase(fraseTexto, fraseEl, 150);
+        } else {
+            // Pausar y limpiar al salir
+            audio.pause();
+            audio.currentTime = 0;
+            clearFrase();
+        }
+    });
 
-  // También si al cargar ya estás en esa página
-  const stored = parseInt(localStorage.getItem('flipbook-hoja'));
-  const current = Number.isNaN(stored) ? 0 : stored;
-  if(Math.min(current, leaves.length-1) === pageIndex){
-      audio.play().catch(err=>console.warn(err));
-      typeFrase(fraseTexto, fraseEl, 150);
-  }
+    // También si al cargar ya estás en esa página
+    const stored = parseInt(localStorage.getItem('flipbook-hoja'));
+    const current = Number.isNaN(stored) ? 0 : stored;
+    if(Math.min(current, leaves.length-1) === pageIndex){
+        audio.play().catch(err=>console.warn(err));
+        typeFrase(fraseTexto, fraseEl, 150);
+    }
 
 })();
