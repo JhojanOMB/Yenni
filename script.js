@@ -24,6 +24,12 @@ class FlipBook {
             localStorage.setItem('flipbook-hoja', this.current);
 
             this.update();
+
+            // Emitimos evento para que otros scripts (reproductor) sepan que cambió la página
+            const visibleIndex = Math.min(this.current, this.max - 1);
+            this.book.dispatchEvent(new CustomEvent('pageChanged', {
+                detail: { current: this.current, visibleIndex }
+            }));
         });
     }
 
@@ -33,6 +39,12 @@ class FlipBook {
             leaf.style.transform = pos ? 'rotateY(-180deg)' : 'rotateY(0deg)';
             leaf.style.zIndex = pos ? idx : this.max - idx;
         });
+
+        // También emitimos evento cuando update() se ejecuta
+        const visibleIndex = Math.min(this.current, this.max - 1);
+        this.book.dispatchEvent(new CustomEvent('pageChanged', {
+            detail: { current: this.current, visibleIndex }
+        }));
     }
 }
 
@@ -40,39 +52,75 @@ document.addEventListener('DOMContentLoaded', () => {
     new FlipBook(document.getElementById('flipbook'));
 });
 
-  const mensajeReal = "TE QUIERO MUCHO";
-  const elemento = document.getElementById("mensaje");
-  const corazon = document.querySelector(".corazon-img");
+/* ---------- MENSAJE CORAZÓN ---------- */
+const mensajeReal = "TE QUIERO MUCHO";
+const elemento = document.getElementById("mensaje");
+const corazon = document.querySelector(".corazon-img");
 
-  // Mostrar primero guiones bajos
-  let mostrado = mensajeReal.split("").map(char => {
+// Mostrar primero guiones bajos
+let mostrado = mensajeReal.split("").map(char => {
     return char === " " ? " " : "_";
-  });
+});
 
-  elemento.textContent = mostrado.join(" ");
+if (elemento) {
+    elemento.textContent = mostrado.join(" ");
+}
 
-  let i = 0;
-  function revelarLetras() {
+let i = 0;
+function revelarLetras() {
     if (i < mensajeReal.length) {
-      if (mensajeReal[i] !== " ") {
-        mostrado[i] = mensajeReal[i];
-      }
-      elemento.textContent = mostrado.join(" ");
-      i++;
-      setTimeout(revelarLetras, 400); // velocidad
+        if (mensajeReal[i] !== " ") {
+            mostrado[i] = mensajeReal[i];
+        }
+        elemento.textContent = mostrado.join(" ");
+        i++;
+        setTimeout(revelarLetras, 400); // velocidad
     }
-  }
+}
 
-  corazon.addEventListener("click", () => {
-    if (i === 0) { // Solo la primera vez
-      revelarLetras();
+// Reproducir con click en el corazón
+if (corazon) {
+    corazon.addEventListener("click", () => {
+        if (i === 0) { // Solo la primera vez
+            revelarLetras();
+        }
+    });
+}
+
+// Reproducir automáticamente cuando se llega a la página del corazón
+(function autoStartCorazon(){
+    const page = document.getElementById('page-17');
+    const flipbook = document.getElementById('flipbook');
+    if(!page || !flipbook) return;
+
+    const leaves = flipbook.querySelectorAll('.hoja');
+    const pageLeaf = page.closest('.hoja');
+    const pageIndex = pageLeaf ? Array.prototype.indexOf.call(leaves, pageLeaf) : -1;
+    if(pageIndex < 0) return;
+
+    function handlePageChanged(detail){
+        if(!detail) return;
+        if(detail.visibleIndex === pageIndex && i === 0){
+            revelarLetras(); // Inicia automáticamente si aún no empezó
+        }
     }
-  });
+
+    flipbook.addEventListener('pageChanged', e => handlePageChanged(e.detail));
+
+    // Chequear estado inicial (si ya estás en esa página al cargar)
+    const stored = parseInt(localStorage.getItem('flipbook-hoja'));
+    const current = Number.isNaN(stored) ? 0 : stored;
+    const initialVisible = Math.min(current, leaves.length-1);
+    if(initialVisible === pageIndex && i === 0){
+        revelarLetras();
+    }
+})();
+
 
 /* ---------- CONFIG FRASES ---------- */
 const frases = [
   "«Seré tu memoria cuando las hojas se pierdan.»",
-  "«Seré el complice de tus locuras.»",
+  "«Seré el cómplice de tus locuras.»",
   "«Ya sé que te encanta bailar, por eso te miro como si fueras mi canción favorita.»",
   "«Seré el Badtz-Maru que nunca se rinde si es por ti.»",
   "«Seré quien te diga que no estás sola, ni en tu lado más oscuro.»",
@@ -95,15 +143,11 @@ const DELETE_SPEED = 18;
 // Retardo inicial antes de arrancar (ms)
 const START_DELAY = 300;
 
-/* ---------- LÓGICA ---------- */
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
 const el = document.querySelector('.type-text');
 const cursor = document.querySelector('.type-cursor');
-if(!el) {
-  console.warn('No se encontró .type-text. Inserta el HTML antes de este script.');
-} else {
-  // Preparar estado para shuffle
+if(el) {
   let seqIndex = 0;
   let shuffleArr = [];
   let lastIndex = -1;
@@ -125,7 +169,7 @@ if(!el) {
       }
       return shuffleArr.shift();
     }
-    // mode random (por defecto)
+    // mode random
     if(frases.length === 1) return 0;
     let idx;
     do {
@@ -159,14 +203,181 @@ if(!el) {
       lastIndex = idx;
       const phrase = frases[idx];
       await typeText(phrase);
-      // espera visible
       await sleep(VISIBLE_TIME);
-      // borrar antes de siguiente
       await deleteText();
-      // pequeño descanso antes de continuar
       await sleep(300);
     }
   }
   
   runLoop().catch(err => console.error(err));
 }
+
+/* ---------- REPRODUCTOR + BRIDGE con FlipBook + Guardar progreso ---------- */
+(function(){
+  if(document.readyState === 'loading'){
+    return document.addEventListener('DOMContentLoaded', init);
+  } else init();
+
+  function init(){
+    const page = document.getElementById('page-28');
+    const flipbook = document.getElementById('flipbook') || document.documentElement;
+    if(!page || !flipbook) return;
+
+    const audio = document.getElementById('audio-28');
+    const playBtn = document.getElementById('dr-play-28');
+    const fallbackBtn = document.getElementById('dr-fallback-28');
+    const progress = document.getElementById('dr-progress-28');
+    const progressFill = document.getElementById('dr-progress-filled-28');
+    const timeEl = document.getElementById('dr-time-28');
+    const playerEl = document.getElementById('dr-player-28');
+    if(!audio || !playerEl) return;
+
+    let isPlaying = false;
+    const STORAGE_KEY = "audio-pos-28"; // clave única para esta página
+
+    // ---------- Bloquear propagación al flipbook ----------
+    const stopAll = ev => { try{ ev.stopPropagation(); }catch(e){} };
+    ['pointerdown','pointerup','pointermove','pointercancel','click',
+    'touchstart','touchend','mousedown','mouseup'].forEach(evName => {
+      playerEl.addEventListener(evName, stopAll, { passive:false });
+      playBtn && playBtn.addEventListener(evName, stopAll, { passive:false });
+      progress && progress.addEventListener(evName, stopAll, { passive:false });
+      fallbackBtn && fallbackBtn.addEventListener(evName, stopAll, { passive:false });
+    });
+
+    // ---------- Helpers ----------
+    const fmt = s => { 
+      s=Math.max(0,Math.floor(s||0)); 
+      const m=Math.floor(s/60), sec=s%60; 
+      return `${m}:${sec.toString().padStart(2,'0')}`; 
+    };
+    const setPlayingUI = () => { if(playBtn) playBtn.textContent = isPlaying ? '⏸' : '▶'; };
+
+    async function tryPlay(){ 
+      try{ 
+        await audio.play(); 
+        isPlaying = true;
+        setPlayingUI(); 
+        if(fallbackBtn) fallbackBtn.style.display='none'; 
+      } catch{ 
+        if(fallbackBtn) fallbackBtn.style.display='inline-block'; 
+        isPlaying = false;
+        setPlayingUI();
+      } 
+    }
+
+    function doPause(){ 
+      try{ 
+        audio.pause(); 
+        isPlaying = false;
+        setPlayingUI();
+      }catch{} 
+    }
+
+    function togglePlay(){
+      if (audio.paused) {
+        audio.play().catch(() => {
+          if(fallbackBtn) fallbackBtn.style.display='inline-block';
+        });
+      } else {
+        audio.pause();
+      }
+    }
+
+    
+    // ---------- Progreso ----------
+    function updateProgress(){
+      if(!audio.duration||!isFinite(audio.duration)){ 
+        progressFill.style.width='0%'; 
+        timeEl.textContent='0:00 / 0:00'; 
+        return; 
+      }
+      const pct=(audio.currentTime/audio.duration)*100;
+      progressFill.style.width=`${pct}%`;
+      timeEl.textContent=`${fmt(audio.currentTime)} / ${fmt(audio.duration)}`;
+      
+      // Guardar progreso en localStorage
+      localStorage.setItem(STORAGE_KEY, audio.currentTime);
+    }
+
+    audio.addEventListener('loadedmetadata', () => {
+      // Restaurar progreso guardado
+      const saved = parseFloat(localStorage.getItem(STORAGE_KEY));
+      if(!isNaN(saved) && saved > 0 && saved < audio.duration){
+        audio.currentTime = saved;
+      }
+      updateProgress();
+    });
+
+    audio.addEventListener('timeupdate', updateProgress);
+    audio.addEventListener('ended', ()=> { isPlaying=false; setPlayingUI(); });
+
+    // ---------- Botones ----------
+    audio.addEventListener('play', () => {
+      isPlaying = true;
+      setPlayingUI();
+    });
+
+    audio.addEventListener('pause', () => {
+      isPlaying = false;
+      setPlayingUI();
+    });
+
+    playBtn && playBtn.addEventListener('click', togglePlay);
+    fallbackBtn && fallbackBtn.addEventListener('click', async()=>{ 
+      try{ 
+        await audio.play(); 
+        isPlaying = true;
+        fallbackBtn.style.display='none'; 
+        setPlayingUI();
+      }catch{} 
+    });
+
+    // ---------- Seeking ----------
+    progress && progress.addEventListener('click', ev=>{
+      stopAll(ev); 
+      const rect=progress.getBoundingClientRect();
+      const pct=Math.min(1,Math.max(0,(ev.clientX-rect.left)/rect.width));
+      if(audio.duration) audio.currentTime=pct*audio.duration; 
+      updateProgress();
+    });
+
+    let isSeeking=false;
+    function seekFromPointer(x){ 
+      const rect=progress.getBoundingClientRect(); 
+      const pct=Math.min(1,Math.max(0,(x-rect.left)/rect.width)); 
+      if(audio.duration) audio.currentTime=pct*audio.duration; 
+      updateProgress(); 
+    }
+    progress && progress.addEventListener('pointerdown', ev=>{ 
+      stopAll(ev); isSeeking=true; 
+      try{progress.setPointerCapture(ev.pointerId);}catch{} 
+      seekFromPointer(ev.clientX); 
+    });
+    progress && progress.addEventListener('pointermove', ev=>{ if(isSeeking) seekFromPointer(ev.clientX); });
+    progress && progress.addEventListener('pointerup', ev=>{ 
+      if(isSeeking){ 
+        isSeeking=false; 
+        try{progress.releasePointerCapture(ev.pointerId);}catch{} 
+        seekFromPointer(ev.clientX);
+      } 
+    });
+    progress && progress.addEventListener('pointercancel', ()=>{ isSeeking=false; });
+
+    // ---------- Integración con FlipBook ----------
+    const leaves=flipbook.querySelectorAll('.hoja');
+    const pageLeaf=page.closest('.hoja');
+    const pageIndex=pageLeaf?Array.prototype.indexOf.call(leaves,pageLeaf):-1;
+    function handlePageChanged(detail){ 
+      if(!detail||pageIndex<0) return; 
+      if(detail.visibleIndex===pageIndex) tryPlay(); else doPause(); 
+    }
+    flipbook.addEventListener('pageChanged', e=>handlePageChanged(e.detail));
+
+    // ---------- Estado inicial ----------
+    const stored=parseInt(localStorage.getItem('flipbook-hoja'));
+    const current=Number.isNaN(stored)?0:stored;
+    const initialVisible=Math.min(current,leaves.length-1);
+    if(initialVisible===pageIndex) tryPlay(); else doPause();
+  }
+})();
