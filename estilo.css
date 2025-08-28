@@ -456,3 +456,11 @@ body[onload] div.hoja:nth-child(4)> div:nth-child(1){
   justify-content: center;
   align-items: center;
 }
+
+.cancion-frase {
+    margin-top: 12px;
+    font-style: italic;
+    font-size: 1rem;
+    color: #555;
+    text-align: center;
+}

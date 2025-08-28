@@ -343,3 +343,50 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentPage = Number.isNaN(storedPage) ? 0 : storedPage;
     if (currentPage === pageIndex) tryPlay();
 });
+
+(function(){
+  const flipbook = document.getElementById('flipbook');
+  const page = document.getElementById('page-28');
+  const audio = document.getElementById('audio-28');
+  const playBtn = document.getElementById('dr-play-28');
+  const fraseEl = document.getElementById('cancion-frase-28');
+  const fraseTexto = "«Que cada nota me recuerde a ti, y cada suspiro sea tuyo.»";
+
+  if(!flipbook || !page || !audio || !fraseEl || !playBtn) return;
+
+  // Efecto tipeo
+  async function typeFrase(text, el, speed = 150){
+      el.textContent = '';
+      for(let i = 0; i < text.length; i++){
+          el.textContent = text.slice(0, i+1);
+          await new Promise(r => setTimeout(r, speed));
+      }
+  }
+
+  // Detectar cambio de página
+  const leaves = flipbook.querySelectorAll('.hoja');
+  const pageLeaf = page.closest('.hoja');
+  const pageIndex = pageLeaf ? Array.prototype.indexOf.call(leaves, pageLeaf) : -1;
+  if(pageIndex < 0) return;
+
+  flipbook.addEventListener('pageChanged', async (e) => {
+      if(!e.detail) return;
+      if(e.detail.visibleIndex === pageIndex){
+          // Reproducir audio
+          try { await audio.play(); } catch(err){ console.warn(err); }
+          // Mostrar frase lentamente
+          typeFrase(fraseTexto, fraseEl, 150);
+      } else {
+          audio.pause();
+      }
+  });
+
+  // También si al cargar ya estás en esa página
+  const stored = parseInt(localStorage.getItem('flipbook-hoja'));
+  const current = Number.isNaN(stored) ? 0 : stored;
+  if(Math.min(current, leaves.length-1) === pageIndex){
+      audio.play().catch(err=>console.warn(err));
+      typeFrase(fraseTexto, fraseEl, 150);
+  }
+
+})();
