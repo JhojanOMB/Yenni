@@ -1,0 +1,92 @@
+:root{
+  --bg: #000;
+  --canvas-z: 1;
+  --viewer-z: 2;
+  --ui-z: 4;
+  --audio-z: 5;
+}
+html,body{
+  height:100%;
+  margin:0;
+  background:var(--bg);
+  overflow:hidden;
+  font-family: Inter, Roboto, Arial, sans-serif;
+}
+.stage {
+  position:relative;
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  isolation:isolate;
+}
+canvas#particles {
+  position:absolute;
+  inset:0;
+  z-index:var(--canvas-z);
+  pointer-events:none;
+  display:block;
+}
+model-viewer#mv {
+  position:relative;
+  z-index:var(--viewer-z);
+  width: 280px;
+  height: 280px;
+  --poster-color: transparent;
+  background: transparent;
+}
+.ui {
+  position:absolute;
+  top:14px; left:14px;
+  z-index:var(--ui-z);
+  color: rgba(255,255,255,0.92);
+  font-size:13px;
+  pointer-events:none;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+.audio-controls {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  z-index: var(--audio-z);
+  display:flex;
+  gap:10px;
+  align-items:center;
+  background: rgba(255,255,255,0.04);
+  padding: 8px 10px;
+  border-radius: 10px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+}
+.audio-controls button {
+  width:40px;
+  height:40px;
+  border-radius:8px;
+  border: none;
+  background: linear-gradient(180deg,#5B0F1A,#39071a);
+  color: #fff;
+  font-weight:700;
+  font-size:16px;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.5), inset 0 -2px 0 rgba(0,0,0,0.18);
+}
+.audio-controls button:active { transform: translateY(1px); }
+.audio-controls span { color: #f4f4f4; font-size:13px; opacity:0.95; }
+#btnUnmute { width:38px; height:38px; background: linear-gradient(180deg,#2f0b2f,#170517); font-size:15px; }
+.autoplay-hint {
+  position: absolute;
+  right: 18px;
+  top: 68px;
+  z-index: 6;
+  color: #f4f4f4;
+  font-size:13px;
+  background: rgba(0,0,0,0.45);
+  padding:8px 10px;
+  border-radius:8px;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.6);
+}
+@media (max-width:520px){
+  model-viewer#mv { width: 220px; height:220px; }
+  .audio-controls { right: 12px; top: 12px; padding:6px 8px; }
+}
