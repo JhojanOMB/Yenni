@@ -132,7 +132,7 @@ const frases = [
 const MODE = 'random';
 
 // Tiempo total que la frase debe estar visible (ms) PERMANECIENDO tras escribirse
-const VISIBLE_TIME = 2000;
+const VISIBLE_TIME = 5000;
 
 // Velocidad de tipeo y borrado (ms por carácter)
 const TYPE_SPEED = 28;
