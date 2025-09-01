@@ -31,8 +31,8 @@ canvas#particles {
 model-viewer#mv {
   position:relative;
   z-index:var(--viewer-z);
-  width: 280px;
-  height: 280px;
+  width: 150px;
+  height: 150px;
   --poster-color: transparent;
   background: transparent;
 }

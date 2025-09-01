@@ -13,7 +13,7 @@ const ORBIT_MAX = 5.6;
 const COLOR_A = { r: 91, g: 15, b: 26 };
 const COLOR_B = { r: 58, g: 15, b: 58 };
 
-const GLOBAL_ROTATION_SPEED = 0.00025;
+const GLOBAL_ROTATION_SPEED = 0.0002;
 const GLOBAL_ZOOM_AMPLITUDE = 0.045;
 const GLOBAL_ZOOM_SPEED = 0.00032;
 
