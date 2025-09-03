@@ -533,20 +533,20 @@ if (btn) btn.addEventListener('click', async () => {
   }
 });
 
-//// MENSAJES-ASTEROIDES con efecto estrella fugaz realista
+//// MENSAJES-METEORITOS con estela de partículas ✨
 const mensajes = [];
 
 function crearMensaje(texto, color = "#ff9fcf") {
-  // === TEXTO ===
+  // === TEXTO DINÁMICO ===
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  canvas.width = 1024;
-  canvas.height = 256;
 
-  ctx.fillStyle = "transparent";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.font = "bold 80px Arial";
+  const textWidth = ctx.measureText(texto).width;
+  canvas.width = textWidth + 200;
+  canvas.height = 200;
 
-  ctx.font = "bold 100px Arial";
+  ctx.font = "bold 80px Arial";
   ctx.fillStyle = color;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -556,41 +556,42 @@ function crearMensaje(texto, color = "#ff9fcf") {
   const material = new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 1 });
   const sprite = new THREE.Sprite(material);
 
-  // Posición inicial y velocidad
-  sprite.scale.set(32, 12, 1);
+  // Posición inicial y velocidad (como meteoro diagonal)
+  sprite.scale.set(40, 15, 1);
   sprite.position.set(
-    (Math.random() - 0.5) * 200,
-    (Math.random() - 0.5) * 120,
+    (Math.random() - 0.5) * 150,
+    (Math.random() - 0.5) * 100,
     -200
   );
   sprite.userData.velocidad = new THREE.Vector3(
-    (Math.random() - 0.5) * 0.3,
-    (Math.random() - 0.5) * 0.3,
-    1.2 + Math.random() * 0.8
+    (Math.random() - 0.5) * 0.4,
+    (Math.random() - 0.5) * 0.4,
+    1.5 + Math.random() * 1.2
   );
   sprite.userData.vida = 1;
 
-  // === RASTRO (estela brillante tipo estrella fugaz) ===
-  const trailLength = 20;
-  const positions = new Float32Array(trailLength * 3);
+  // === PARTICULAS ESTELA (estrella fugaz realista) ===
+  const particleCount = 40;
+  const positions = new Float32Array(particleCount * 3);
+  for (let i = 0; i < particleCount; i++) {
+    positions[i * 3] = sprite.position.x;
+    positions[i * 3 + 1] = sprite.position.y;
+    positions[i * 3 + 2] = sprite.position.z;
+  }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
 
-  const trailMaterial = new THREE.LineBasicMaterial({
+  const trailMaterial = new THREE.PointsMaterial({
     color: 0xffffff,
+    size: 1.8,
     transparent: true,
-    opacity: 0.6
+    opacity: 0.8
   });
 
-  const trail = new THREE.Line(geometry, trailMaterial);
+  const trail = new THREE.Points(geometry, trailMaterial);
   scene.add(trail);
 
-  sprite.userData.trail = {
-    geometry,
-    positions,
-    trailLength,
-    line: trail
-  };
+  sprite.userData.trail = { geometry, positions, particleCount, points: trail };
 
   scene.add(sprite);
   mensajes.push(sprite);
@@ -602,12 +603,12 @@ function animarMensajes() {
     msg.position.add(msg.userData.velocidad);
 
     // Desvanecimiento del texto
-    msg.userData.vida -= 0.003;
+    msg.userData.vida -= 0.0035;
     msg.material.opacity = Math.max(0, msg.userData.vida);
 
-    // === Actualizar trail ===
-    const { geometry, positions, trailLength } = msg.userData.trail;
-    for (let j = trailLength - 1; j > 0; j--) {
+    // === Actualizar partículas de la estela ===
+    const { geometry, positions, particleCount } = msg.userData.trail;
+    for (let j = particleCount - 1; j > 0; j--) {
       positions[j * 3] = positions[(j - 1) * 3];
       positions[j * 3 + 1] = positions[(j - 1) * 3 + 1];
       positions[j * 3 + 2] = positions[(j - 1) * 3 + 2];
@@ -615,21 +616,20 @@ function animarMensajes() {
     positions[0] = msg.position.x;
     positions[1] = msg.position.y;
     positions[2] = msg.position.z;
+
     geometry.attributes.position.needsUpdate = true;
+    msg.userData.trail.points.material.opacity = msg.material.opacity * 0.8;
 
-    // El trail también se desvanece
-    msg.userData.trail.line.material.opacity = msg.material.opacity * 0.6;
-
-    // Eliminar mensaje cuando se desvanece por completo
+    // Eliminar mensaje cuando muere
     if (msg.userData.vida <= 0) {
       scene.remove(msg);
-      scene.remove(msg.userData.trail.line);
+      scene.remove(msg.userData.trail.points);
       mensajes.splice(i, 1);
     }
   }
 }
 
-// Frases románticas + dark romance + dedicadas a ella
+// Frases románticas dedicadas a ella
 setInterval(() => {
   const frases = [
     "💖 Te Amo",
