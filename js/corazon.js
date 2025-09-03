@@ -533,76 +533,118 @@ if (btn) btn.addEventListener('click', async () => {
   }
 });
 
-//// MENSAJES-ASTEROIDES
+//// MENSAJES-ASTEROIDES con efecto estrella fugaz realista
 const mensajes = [];
 
-// Función para crear un "mensaje-asteroide"
-function crearMensaje(texto, color = "#ffffff") {
+function crearMensaje(texto, color = "#ff9fcf") {
+  // === TEXTO ===
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  canvas.width = 1024;  // más ancho para soportar letra grande
+  canvas.width = 1024;
   canvas.height = 256;
 
   ctx.fillStyle = "transparent";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.font = "bold 100px Arial";   // 🔥 letra más grande
+  ctx.font = "bold 100px Arial";
   ctx.fillStyle = color;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(texto, canvas.width / 2, canvas.height / 2);
 
   const texture = new THREE.CanvasTexture(canvas);
-  const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 1 });
   const sprite = new THREE.Sprite(material);
 
-  // escala y posición inicial (un poco más grande)
-  sprite.scale.set(30, 10, 1);
+  // Posición inicial y velocidad
+  sprite.scale.set(32, 12, 1);
   sprite.position.set(
-    (Math.random() - 0.5) * 200, // x aleatorio
-    (Math.random() - 0.5) * 120, // y aleatorio
-    -200                        // empieza lejos
+    (Math.random() - 0.5) * 200,
+    (Math.random() - 0.5) * 120,
+    -200
   );
-
-  // velocidad hacia adelante
   sprite.userData.velocidad = new THREE.Vector3(
-    (Math.random() - 0.5) * 0.2, 
-    (Math.random() - 0.5) * 0.2,
+    (Math.random() - 0.5) * 0.3,
+    (Math.random() - 0.5) * 0.3,
     1.2 + Math.random() * 0.8
   );
+  sprite.userData.vida = 1;
+
+  // === RASTRO (estela brillante tipo estrella fugaz) ===
+  const trailLength = 20;
+  const positions = new Float32Array(trailLength * 3);
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+
+  const trailMaterial = new THREE.LineBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.6
+  });
+
+  const trail = new THREE.Line(geometry, trailMaterial);
+  scene.add(trail);
+
+  sprite.userData.trail = {
+    geometry,
+    positions,
+    trailLength,
+    line: trail
+  };
 
   scene.add(sprite);
   mensajes.push(sprite);
 }
 
-// Animación de mensajes
 function animarMensajes() {
   for (let i = mensajes.length - 1; i >= 0; i--) {
     const msg = mensajes[i];
     msg.position.add(msg.userData.velocidad);
 
-    // Si pasa el plano de cámara, lo quitamos
-    if (msg.position.z > 150) {
+    // Desvanecimiento del texto
+    msg.userData.vida -= 0.003;
+    msg.material.opacity = Math.max(0, msg.userData.vida);
+
+    // === Actualizar trail ===
+    const { geometry, positions, trailLength } = msg.userData.trail;
+    for (let j = trailLength - 1; j > 0; j--) {
+      positions[j * 3] = positions[(j - 1) * 3];
+      positions[j * 3 + 1] = positions[(j - 1) * 3 + 1];
+      positions[j * 3 + 2] = positions[(j - 1) * 3 + 2];
+    }
+    positions[0] = msg.position.x;
+    positions[1] = msg.position.y;
+    positions[2] = msg.position.z;
+    geometry.attributes.position.needsUpdate = true;
+
+    // El trail también se desvanece
+    msg.userData.trail.line.material.opacity = msg.material.opacity * 0.6;
+
+    // Eliminar mensaje cuando se desvanece por completo
+    if (msg.userData.vida <= 0) {
       scene.remove(msg);
+      scene.remove(msg.userData.trail.line);
       mensajes.splice(i, 1);
     }
   }
 }
 
-// Crear mensajes automáticos cada 5 seg.
+// Frases románticas + dark romance + dedicadas a ella
 setInterval(() => {
   const frases = [
     "💖 Te Amo",
-    "Eres mi Universo 🌌",
-    "Mi Corazón ❤️",
-    "Juntos por siempre ✨",
-    "Mi Estrella ⭐"
+    "Tus besos son mi veneno dulce 🕷️",
+    "Mi flaquita, mi todo 💕",
+    "Siempre en mi mente, mi postrecito 🍨",
+    "Mi reina hermosa 👑",
+    "Tus ojos miel, mi universo infinito 👁️✨",
+    "Aunque arda, contigo siempre 🔥❤️"
   ];
   const frase = frases[Math.floor(Math.random() * frases.length)];
   crearMensaje(frase, "#ff9fcf");
 }, 5000);
 
-// 🔄 Integrar en el bucle de animación
+// Integrar en el loop
 const oldAnimate = animate;
 animate = function(now) {
   oldAnimate(now);
